@@ -50,7 +50,7 @@ app.get('/info', (request, response) => {
   })
 })
 
-app.post('/api/persons', async (request, response) => {
+app.post('/api/persons', (request, response, next) => {
   const body = request.body
 
   if(!body.name || !body.number) {
@@ -59,36 +59,23 @@ app.post('/api/persons', async (request, response) => {
     })
   }
 
-  const names = await Person.find({})
-
-  const namesArray = names.map(name => name.name)
-
-  if(namesArray.includes(body.name)) {
-    return response.status(400).json({
-      error: 'name must be unique'
-    })
-  }
-
   const person = new Person({
     name: body.name,
     number: body.number
   })
 
-  person.save().then(savedPerson => {
-    response.json(savedPerson)
-  })
+  person.save()
+    .then(savedPerson => {
+      response.json(savedPerson)
+    })
+    .catch(error => next(error))
 })
 
 app.put('/api/persons/:id', (request, response, next) => {
   const id = request.params.id
-  const body = request.body
+  const { name, number } = request.body
 
-  const person = {
-    name: body.name,
-    number: body.number
-  }
-
-  Person.findByIdAndUpdate(id, person, { new: true })
+  Person.findByIdAndUpdate(id, { name, number}, { new: true, runValidators: true, context: 'query' })
     .then(updatedPerson => {
       response.json(updatedPerson)
     })
@@ -122,6 +109,8 @@ function errorHandler(error, request, response, next) {
 
   next(error)
 }
+
+app.use(errorHandler)
 
 const PORT = process.env.PORT
 
