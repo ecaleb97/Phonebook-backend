@@ -22,11 +22,28 @@ app.get('/api/persons', (request, response) => {
   })
 })
 
-app.get('/api/persons/:id', (request, response) => {
+app.get('/api/persons/:id', (request, response, next) => {
   const id = request.params.id
 
-  Person.findById(id).then(person => {
-    response.json(person)
+  Person.findById(id)
+    .then(person => {
+      if (person) {
+        response.json(person)
+      } else {
+        response.status(400).end()
+      }
+    })
+    .catch(error => next(error))
+})
+
+app.get('/info', (request, response) => {
+  const date = new Date()
+
+  Person.find({}).then(persons => {
+    response.send(
+      `<p>Phonebook has info for ${persons.length} people</p>
+            <p>${date.toISOString().split('T')[0]}</p>`
+    )
   })
 })
 
@@ -59,7 +76,7 @@ app.post('/api/persons', async (request, response) => {
   })
 })
 
-app.put('/api/persons/:id', (request, response) => {
+app.put('/api/persons/:id', (request, response, next) => {
   const id = request.params.id
   const body = request.body
 
@@ -72,14 +89,17 @@ app.put('/api/persons/:id', (request, response) => {
     .then(updatedPerson => {
       response.json(updatedPerson)
     })
+    .catch(error => next(error))
 })
 
-app.delete('/api/persons/:id', (request, response) => {
+app.delete('/api/persons/:id', (request, response, next) => {
   const id = request.params.id
 
-  Person.findByIdAndDelete(id).then(result => {
-    response.status(204).end()
-  })
+  Person.findByIdAndDelete(id)
+    .then(result => {
+      response.status(204).end()
+    })
+    .catch(error => next(error))
 })
 
 function unknownEndpoint(request, response) {
@@ -87,6 +107,18 @@ function unknownEndpoint(request, response) {
 }
 
 app.use(unknownEndpoint)
+
+function errorHandler(error, request, response, next) {
+  console.error(error.message)
+
+  if(error.name === 'CastError') {
+    return response.status(400).send({ error: 'malformatted id' })
+  } else if(error.name === 'ValidationError') {
+    return response.status(400).json({ error: error.message })
+  }
+
+  next(error)
+}
 
 const PORT = process.env.PORT
 
