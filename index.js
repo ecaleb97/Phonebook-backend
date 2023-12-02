@@ -25,8 +25,10 @@ app.get('/api/persons', (request, response) => {
 app.get('/api/persons/:id', (request, response, next) => {
   const id = request.params.id
 
-  Person.findById(id)
+  if (id.match(/^[0-9a-fA-F]{24}$/)) {
+    Person.findById(id)
     .then(person => {
+      console.log(person)
       if (person) {
         response.json(person)
       } else {
@@ -34,6 +36,7 @@ app.get('/api/persons/:id', (request, response, next) => {
       }
     })
     .catch(error => next(error))
+  }
 })
 
 app.get('/info', (request, response) => {
