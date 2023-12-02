@@ -4,6 +4,8 @@ const express = require('express')
 const app = express()
 const cors = require('cors')
 const Person = require('./models/person')
+const errorHandler = require('./middleware/errorHandler')
+const unknownEndpoint = require('./middleware/unknownEndpoint')
 
 app.use(express.json())
 app.use(cors())
@@ -92,23 +94,7 @@ app.delete('/api/persons/:id', (request, response, next) => {
     .catch(error => next(error))
 })
 
-function unknownEndpoint(request, response) {
-  response.status(404).send({ error: 'unknown endpoint' })
-}
-
 app.use(unknownEndpoint)
-
-function errorHandler(error, request, response, next) {
-  console.error(error.message)
-
-  if(error.name === 'CastError') {
-    return response.status(400).send({ error: 'malformatted id' })
-  } else if(error.name === 'ValidationError') {
-    return response.status(400).json({ error: error.message })
-  }
-
-  next(error)
-}
 
 app.use(errorHandler)
 
